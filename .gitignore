@@ -1,0 +1,13 @@
+node_modules
+build
+npm-debug.log
+.env
+.DS_Store
+trash
+img
+*.png
+*.json
+!data1m.json
+*.html
+!manydays.html
+mergeobjs.js
