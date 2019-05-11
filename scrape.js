@@ -119,6 +119,7 @@ function scrape_bars(html) {
 									  						 	 	.split('-')
 
 					bar.t = parseInt(rawdata[0].split(',')[3]);
+					bar.humanT = rawdata[0];
 					bar.o = parseFloat(rawvalues[1]);
 					bar.h = parseFloat(rawvalues[2]);
 					bar.l = parseFloat(rawvalues[3]);

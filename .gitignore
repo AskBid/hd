@@ -11,3 +11,4 @@ img
 *.html
 !manydays.html
 mergeobjs.js
+*.txt

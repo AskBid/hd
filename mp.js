@@ -1,6 +1,3 @@
-const fs = require('fs');
-const d3 = require('d3');
-
 var letters = ['A','B','C','D','E','F','G','H','I',
 						   'J','K','L','M','N','O','P','Q','R',
 						   'S','T','U','V','W','X','Y','Z','a',
@@ -10,27 +7,25 @@ var letters = ['A','B','C','D','E','F','G','H','I',
 						   '2','3','4','5','6','7','8','9','$'];
 						   // '%','@','£','#','?','>','&','€','/'];
 
+var ticksize
+
 var dayduration = {'starthour': 17, 'endhour': 15, 'thisdaystart': null}
 dayduration.thisdaystart = dayduration.starthour > dayduration.endhour ? 24 : dayduration.starthour; 
 
 var sessions_times = [{'start': '1700', 'end': '0830', 'name': 'eth'},
 											{'start': '0830', 'end': '1515', 'name': 'rth'}]
 
-let data = JSON.parse(fs.readFileSync('data1m.json'))
+var daydate
 
-var daydate = new Date(2019, 4-1, 18)
-var date_str = daydate.getFullYear() + '-' + 
-							(daydate.getMonth()+1) + '-' +
-							 daydate.getDate();
 
-var daybars = data[date_str]
+function getDayProfileData(date, daybars, sessions_times) {
 
-fs.writeFileSync(`day.json`, 
-	JSON.stringify(getDayProfileData(daybars, sessions_times), null, 2));
-
-function getDayProfileData(daybars, sessions_times) {
+	daydate = date;
+	ticksize = 0.25;
 	var dayProfileData = []
-	var sessions = labelBars(daybars, sessions_times)
+	var sessions = sessionsLabeledBars(daybars, sessions_times)
+
+	console.log(sessions)
 
 	sessions.forEach((session) => {
 		var session_P = {'h': null, 'l': null, 'periods': {}}
@@ -46,6 +41,8 @@ function getDayProfileData(daybars, sessions_times) {
 	  	};
 	  })
 	  .entries(session);
+
+	  console.log(periods)
 
 	  session_P.h = d3.max(periods.map((d) => {return d.value.h}))
 	  session_P.l = d3.min(periods.map((d) => {return d.value.l}))
@@ -67,7 +64,7 @@ function getDayProfileData(daybars, sessions_times) {
 	return dayProfileData
 }
 
-function profileValues(session_Pdata, ticksize = 0.25) {
+function profileValues(session_Pdata) {
 	hi = session_Pdata.h
 	lo = session_Pdata.l
 
@@ -90,7 +87,7 @@ function profileValues(session_Pdata, ticksize = 0.25) {
 			period.poc = calculatePOC(profileTPOval)
 			period.vpoc = calculatePOC(profileVOL)
 		}
-	})
+	});
 	session_Pdata.sessionVprofile = profileVOL
 }
 
@@ -146,31 +143,41 @@ function calculatePOC(profile) {
 			}
 		})
 		// console.log(poc_contendents[index4MD])
-		return {'price': poc_contendents[index4MD][0], 'tpos': poc_contendents[index4MD][1]}
+		return {'price': poc_contendents[index4MD][0], 'tpos/vol': poc_contendents[index4MD][1]}
 	}
 
-	return {'price': poc_contendents[0][0], 'tpos': poc_contendents[0][1]}
+	return {'price': poc_contendents[0][0], 'tpos/vol': poc_contendents[0][1]}
 }
 
-function vProfilePeriodBars(bars, hi, lo, ticksize = 0.25) {
-	profile = {}
+function vProfilePeriodBars(bars, hi, lo) {
+	var profile = {}
 	for (let p = hi; p >= lo; p -= ticksize) {
 		profile[p] = 0;
 	}
+	// console.log(profile)
 	bars.forEach((bar) => {
-		let range = (bar.h - bar.l) / ticksize;
+		let range = ((bar.h - bar.l) / ticksize) + 1;
 		let volstep = parseInt(bar.v / range);
+		// console.log('-----')
+		// console.log(volstep)
+		// console.log('bar.v: ' + bar.v)
+		// console.log('range: ' + range)		
+		// console.log('high: ' + bar.h)
+		// console.log('low: ' + bar.l)	
+			
 		for (let p = bar.h; p >= bar.l; p -= ticksize) {
 			profile[p] += volstep;
+			// console.log(`added ${volstep} to ${p}`)	
 		}
+		// console.log('-----')	
 	});
 	
 	return profile
 }
 
-function labelBars(day, sessions_times) {
+function sessionsLabeledBars(daybars, sessions_times) {
 	var day_sessions = []
-	var reminder = day.slice(0);
+	var reminder = daybars.slice(0);
 
 	sessions_times.forEach((session_t) => {
 		let hHourslist = getHHlist(daydate, session_t)
@@ -180,69 +187,70 @@ function labelBars(day, sessions_times) {
 	});
 
 	return day_sessions
+}
 
-	function getHHlist(date, session_t) {
-		var starthour = parseInt(session_t.start.slice(0,2))
-		var startmin =  parseInt(session_t.start.slice(2,4))
-		var endhour =   parseInt(session_t.end.slice(0,2))	
-		var endmin =    parseInt(session_t.end.slice(2,4))
+function getHHlist(date, session_t) {
+	var starthour = parseInt(session_t.start.slice(0,2))
+	var startmin =  parseInt(session_t.start.slice(2,4))
+	var endhour =   parseInt(session_t.end.slice(0,2))	
+	var endmin =    parseInt(session_t.end.slice(2,4))
 
-		var offset_s = 0
-		var offset_e = 0
+	var offset_s = 0
+	var offset_e = 0
 
-		if (starthour < dayduration.thisdaystart && starthour > dayduration.endhour) {
-			offset_s = 1
-		}
-		if (endhour < dayduration.thisdaystart && endhour > dayduration.endhour) {
-			offset_e = 1
-		}
-
-		var start_period = new Date(date.getTime())
-		start_period.setHours(starthour - (24 * offset_s),
-							  					startmin,
-							  					0,
-							  					0)
-
-		var end_period = new Date(date.getTime())
-			end_period.setHours(endhour - (24 * offset_e),
-													endmin,
-													0,
-													0)
-
-		start = start_period.getTime()
-		end = end_period.getTime()
-
-		var halfhours = []
-		for (i = start; i < end; i += 1800000) { //1800000 = 30 minuts times 60 seconds times 1000 milliseconds
-			halfhours.push(i)
-		}
-		halfhours.push(end)
-
-		return halfhours
+	if (starthour < dayduration.thisdaystart && starthour > dayduration.endhour) {
+		offset_s = 1
+	}
+	if (endhour < dayduration.thisdaystart && endhour > dayduration.endhour) {
+		offset_e = 1
 	}
 
-	function splitDay(day, halfhours) {
-		var splitday = []
-		var reminderday = []
+	var start_period = new Date(date.getTime())
+	start_period.setHours(starthour - (24 * offset_s),
+						  					startmin,
+						  					0,
+						  					0)
 
-		day.forEach((bar, i) => {
-			var bar_refused = true
-			for (j = 0; j < halfhours.length - 1; j++) {
-				var max = halfhours[j+1]
-				var min = halfhours[j]
+	var end_period = new Date(date.getTime())
+	end_period.setHours(endhour - (24 * offset_e),
+											endmin,
+											0,
+											0)
 
-				if (bar.t >= min && bar.t < max) {
-					bar.p = letters[j]
-					splitday.push(bar)
-					bar_refused = false
-					continue
-				} 
-			}
-			if (bar_refused) {reminderday.push(bar)}
-		})
-		
-		return {'labeled': splitday, 'reminder': reminderday}
+	start = start_period.getTime()
+	end = end_period.getTime()
+
+	var halfhours = []
+	for (i = start; i < end; i += 1800000) { //1800000 = 30 minuts times 60 seconds times 1000 milliseconds
+		halfhours.push(i)
 	}
+	halfhours.push(end)
+
+	return halfhours
+}
+
+function splitDay(daybars, halfhours) {
+	console.log(halfhours)
+	var splitday = []
+	var reminderday = []
+
+	daybars.forEach((bar, i) => {
+		var bar_refused = true
+		for (j = 0; j < halfhours.length - 1; j++) {
+			var max = halfhours[j+1]
+			var min = halfhours[j]
+
+			if (bar.t >= min && bar.t < max) {
+				bar.p = letters[j]
+				splitday.push(bar)
+				bar_refused = false
+				continue
+			} 
+		}
+		if (bar_refused) {reminderday.push(bar)}
+	})
+	
+	return {'labeled': splitday, 'reminder': reminderday}
 }
 
 
