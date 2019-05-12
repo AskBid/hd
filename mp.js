@@ -15,12 +15,13 @@ dayduration.thisdaystart = dayduration.starthour > dayduration.endhour ? 24 : da
 var sessions_times = [{'start': '1700', 'end': '0830', 'name': 'eth'},
 											{'start': '0830', 'end': '1515', 'name': 'rth'}]
 
-var daydate
+var timestamp_0
 
 
-function getDayProfileData(date, daybars, sessions_times) {
+function getDayProfileData(timestamp_0000, daybars, sessions_times) {
 
-	daydate = date;
+	timestamp_0 = timestamp_0000
+
 	ticksize = 0.25;
 	var dayProfileData = []
 	var sessions = sessionsLabeledBars(daybars, sessions_times)
@@ -180,7 +181,7 @@ function sessionsLabeledBars(daybars, sessions_times) {
 	var reminder = daybars.slice(0);
 
 	sessions_times.forEach((session_t) => {
-		let hHourslist = getHHlist(daydate, session_t)
+		let hHourslist = getHHlist(timestamp_0, session_t)
 		let splitday = splitDay(reminder, hHourslist)
 		day_sessions.push(splitday.labeled)
 		reminder = splitday.reminder
@@ -189,11 +190,11 @@ function sessionsLabeledBars(daybars, sessions_times) {
 	return day_sessions
 }
 
-function getHHlist(date, session_t) {
+function getHHlist(timestamp_0000, session_t) {
 	var starthour = parseInt(session_t.start.slice(0,2))
-	var startmin =  parseInt(session_t.start.slice(2,4))
+	var startmins =  parseInt(session_t.start.slice(2,4))
 	var endhour =   parseInt(session_t.end.slice(0,2))	
-	var endmin =    parseInt(session_t.end.slice(2,4))
+	var endmins =    parseInt(session_t.end.slice(2,4))
 
 	var offset_s = 0
 	var offset_e = 0
@@ -205,26 +206,21 @@ function getHHlist(date, session_t) {
 		offset_e = 1
 	}
 
-	var start_period = new Date(date.getTime())
-	start_period.setHours(starthour - (24 * offset_s),
-						  					startmin,
-						  					0,
-						  					0)
-
-	var end_period = new Date(date.getTime())
-	end_period.setHours(endhour - (24 * offset_e),
-											endmin,
-											0,
-											0)
-
-	start = start_period.getTime()
-	end = end_period.getTime()
+	var start = setHours(timestamp_0000, 
+											 starthour - (24 * offset_s),
+											 startmins)
+	var end = setHours(timestamp_0000, 
+										 endhour - (24 * offset_e),
+										 endmins)
 
 	var halfhours = []
-	for (i = start; i < end; i += 1800000) { //1800000 = 30 minuts times 60 seconds times 1000 milliseconds
-		halfhours.push(i)
+	for (let i = start, j = 0; i < end; i += 1800000, j++) { //1800000 = 30 minuts times 60 seconds times 1000 milliseconds
+
+		var dic = {'period': letters[j], 'timestamp': i, 'localTime': writeDate(i)}
+		halfhours.push(dic)
 	}
-	halfhours.push(end)
+	halfhours.push({'timestamp': end, 'localTime': writeDate(end)})
+	
 
 	return halfhours
 }
@@ -237,8 +233,8 @@ function splitDay(daybars, halfhours) {
 	daybars.forEach((bar, i) => {
 		var bar_refused = true
 		for (j = 0; j < halfhours.length - 1; j++) {
-			var max = halfhours[j+1]
-			var min = halfhours[j]
+			var max = halfhours[j+1].timestamp
+			var min = halfhours[j].timestamp
 
 			if (bar.t >= min && bar.t < max) {
 				bar.p = letters[j]
@@ -254,8 +250,24 @@ function splitDay(daybars, halfhours) {
 }
 
 
+function writeDate(timestamp) {
+	date = new Date(timestamp)
+	var str = (date.getHours() + ':' + 
+						 date.getMinutes()+ '   _' + 
+						 date.getFullYear() + '-' +
+						(date.getMonth() + 1) + '-' +
+						 date.getDate()+ ' seconds(' +
+						 date.getSeconds()+ ')')
 
+	return str
+}
 
+function setHours(timestamp, hours, minutes) {
+	timestamp += (hours * 1000 * 60 * 60)
+	timestamp += (minutes * 1000 * 60)
+
+	return timestamp
+}
 
 
 

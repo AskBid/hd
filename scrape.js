@@ -159,6 +159,10 @@ function write_data(fresh_bars) {
 	printDate('scrape time: ', daydate)
 
 	daydate.setHours(0,0,0,0); //so that is always the same when we set hours for initial bar
+
+	timestamp_daydate = daydate.getTime()
+	console.log('timestamp 4 start of day: ' + timestamp_daydate)
+
 	var date_str = daydate.getFullYear() + '-' + (daydate.getMonth() + 1) + '-' + daydate.getDate();
 
 	let ex_rawdata = fs.readFileSync(`${data_path}data1m.json`);
@@ -195,9 +199,10 @@ function write_data(fresh_bars) {
 	console.log(counter)
 	console.log('data location:')
 	console.log(data_path +'data1m.json')
-	data[date_str] = today;
 
-	data = JSON.stringify(data, null, 2); 
+	data[date_str] = {'timestamp_start_of_day_server_side': timestamp_daydate, 'bars': today};
+
+	data = JSON.stringify(data, null, 2);
 	fs.writeFileSync(`${data_path}data1m.json`, data);
 	console.log('-------------------')
 }
