@@ -222,5 +222,3 @@ function printDate(str, date) {
 							 date.getSeconds());
 	console.log('////')
 }
-
-

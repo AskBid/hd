@@ -1,4 +1,4 @@
-var letters = ['A','B','C','D','E','F','G','H','I',
+const letters = ['A','B','C','D','E','F','G','H','I',
 						   'J','K','L','M','N','O','P','Q','R',
 						   'S','T','U','V','W','X','Y','Z','a',
 						   'b','c','d','e','f','g','h','i','j',
@@ -17,6 +17,7 @@ var sessions_times = [{'start': '1700', 'end': '0830', 'name': 'eth'},
 
 var timestamp_0
 
+var lastTimestamp = 0
 
 function getDayProfileData(timestamp_0000, daybars, sessions_times) {
 
@@ -24,9 +25,7 @@ function getDayProfileData(timestamp_0000, daybars, sessions_times) {
 
 	ticksize = 0.25;
 	var dayProfileData = []
-	var sessions = sessionsLabeledBars(daybars, sessions_times)
-
-	console.log(sessions)
+	var sessions = getLabeledSessions(daybars, sessions_times)
 
 	sessions.forEach((session) => {
 		var session_P = {'h': null, 'l': null, 'periods': {}}
@@ -35,6 +34,7 @@ function getDayProfileData(timestamp_0000, daybars, sessions_times) {
 		  .key(function(d) {return d.p;})
 		  .rollup(function(v) { return {
 		    count: v.length,
+		    o: d3.min(v, function(d) { return d.po; }),
 		    h: d3.max(v, function(d) { return d.h; }),
 		    l: d3.min(v, function(d) { return d.l; }),
 		    vol: d3.sum(v, function(d) { return d.v; }),
@@ -43,24 +43,25 @@ function getDayProfileData(timestamp_0000, daybars, sessions_times) {
 	  })
 	  .entries(session);
 
-	  console.log(periods)
-
 	  session_P.h = d3.max(periods.map((d) => {return d.value.h}))
 	  session_P.l = d3.min(periods.map((d) => {return d.value.l}))
 
 		periods.forEach((period) => {
 			let periodVP = vProfilePeriodBars(period.value.bars, period.value.h, period.value.l);
-			session_P.periods[period.key] = {'h': period.value.h,
-																					 'l': period.value.l,
-																					 'poc': null,
-																					 'vpoc': null,
-																					 'vp': periodVP}
+			session_P.periods[period.key] = {'o': period.value.o,
+																			 'h': period.value.h,
+																			 'l': period.value.l,
+																			 'poc': null,
+																			 'vpoc': null,
+																			 'vp': periodVP}
 		})
 
 		dayProfileData.push(session_P)
 	});
 
-	dayProfileData.forEach(session_P => profileValues(session_P))
+	dayProfileData.forEach((session_P) => {
+		profileValues(session_P);
+	})
 
 	return dayProfileData
 }
@@ -85,6 +86,7 @@ function profileValues(session_Pdata) {
 				profileTPOval[p] += 1;
 			}
 			profileVOL = mergeObjs(profileVOL, period.vp)
+			console.log(letter)
 			period.poc = calculatePOC(profileTPOval)
 			period.vpoc = calculatePOC(profileVOL)
 		}
@@ -129,25 +131,29 @@ function calculatePOC(profile) {
 	var mid = ((hi - lo)/2)+lo;
 
 	var poc_contendents = currentProfile.filter((arr) => {
-		return arr[1] === maxTPO;
-	})
+			return arr[1] === maxTPO;
+		})
 	// console.log(poc_contendents)
 
 	if (poc_contendents.length > 1) {
-		var maxMidDist = 0
-		var index4MD
-		poc_contendents.forEach((el, i) => {
-			var midDist = Math.abs(mid - el[0])
-			if (maxMidDist < midDist) {
-				maxMidDist = midDist;
-				index4MD = i;
-			}
+		
+		var maxMidDist = d3.min(poc_contendents.map(function(arr) {
+			 return Math.abs(mid - arr[0])
+		}))
+		var index4poc
+		poc_contendents.forEach((arr, i) => {
+			// console.log('el ' + i + ': ' + Math.abs(mid - arr[0]))
+			index4poc = Math.abs(mid - arr[0]) === maxMidDist ? i : index4poc;
 		})
-		// console.log(poc_contendents[index4MD])
-		return {'price': poc_contendents[index4MD][0], 'tpos/vol': poc_contendents[index4MD][1]}
+		// console.log(poc_contendents)
+		// console.log(maxMidDist)
+		// console.log(index4poc)
+		// still missing in case there is more equidistant from mid point pocs and you have to 
+		// calculate the side with most tpos.
+		return {'price': poc_contendents[index4poc][0], 'tpos/vol': poc_contendents[index4poc][1]}
+	} else {
+		return {'price': poc_contendents[0][0], 'tpos/vol': poc_contendents[0][1]}
 	}
-
-	return {'price': poc_contendents[0][0], 'tpos/vol': poc_contendents[0][1]}
 }
 
 function vProfilePeriodBars(bars, hi, lo) {
@@ -176,13 +182,13 @@ function vProfilePeriodBars(bars, hi, lo) {
 	return profile
 }
 
-function sessionsLabeledBars(daybars, sessions_times) {
+function getLabeledSessions(daybars, sessions_times) {
 	var day_sessions = []
 	var reminder = daybars.slice(0);
 
 	sessions_times.forEach((session_t) => {
-		let hHourslist = getHHlist(timestamp_0, session_t)
-		let splitday = splitDay(reminder, hHourslist)
+		let hHourslist = getPeriodsTimes(timestamp_0, session_t)
+		let splitday = labelBars_session(reminder, hHourslist)
 		day_sessions.push(splitday.labeled)
 		reminder = splitday.reminder
 	});
@@ -190,7 +196,7 @@ function sessionsLabeledBars(daybars, sessions_times) {
 	return day_sessions
 }
 
-function getHHlist(timestamp_0000, session_t) {
+function getPeriodsTimes(timestamp_0000, session_t) {
 	var starthour = parseInt(session_t.start.slice(0,2))
 	var startmins =  parseInt(session_t.start.slice(2,4))
 	var endhour =   parseInt(session_t.end.slice(0,2))	
@@ -225,19 +231,25 @@ function getHHlist(timestamp_0000, session_t) {
 	return halfhours
 }
 
-function splitDay(daybars, halfhours) {
-	console.log(halfhours)
+function labelBars_session(daybars, halfhours) {
 	var splitday = []
 	var reminderday = []
 
 	daybars.forEach((bar, i) => {
 		var bar_refused = true
+		
 		for (j = 0; j < halfhours.length - 1; j++) {
-			var max = halfhours[j+1].timestamp
-			var min = halfhours[j].timestamp
+			var periodEnd = halfhours[j+1].timestamp
+			var periodStart = halfhours[j].timestamp
 
-			if (bar.t >= min && bar.t < max) {
+			if (bar.t === periodStart) {
+				bar.po = bar.o
+			}
+
+			if (bar.t >= periodStart && bar.t < periodEnd) {
+				bar.t > lastTimestamp ? lastTimestamp = bar.t : null; 
 				bar.p = letters[j]
+
 				splitday.push(bar)
 				bar_refused = false
 				continue
