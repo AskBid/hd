@@ -1,0 +1,91 @@
+
+@font-face {
+	font-family: 'digital-7regular';
+	src: url('./font/digital-7-webfont.woff2') format('woff2'),
+	     url('./font/digital-7-webfont.woff') format('woff');
+	font-weight: normal;
+	font-style: normal;
+}
+
+text {
+  font-family:  'IBM Plex Mono', monospace;
+  line-height: 0.5;
+  fill: rgba(250,250,250,0.6);
+  /*font-size: 16px;*/
+  font-weight: 400;
+  padding: 0px;
+}
+
+text .logo {
+  line-height: 0.5;
+  color: rgba(255,255,255,0.7);
+  font-size: 16px;
+  font-weight: 400;
+  padding: 0px;
+}
+
+rect {
+	fill:none;
+	stroke:pink;
+	stroke-width:1;
+	stroke-opacity:0.6;
+}	
+
+rect:hover {
+	fill:yellow;
+	stroke:yellow;
+	stroke-width:1.1;
+	stroke-opacity:0.7;
+	fill-opacity:0.1;
+}
+
+p {
+	text-align: center;
+	vertical-align: middle;
+	font-family: "sans-serif", "Helvetica";
+	line-height: 1;
+	color: rgba(255,255,255,0.5);
+	font-size: 10px;
+	padding: 0px 0px 0px 0px;
+	margin: 0px 0px 0px 0px;
+}
+
+#sideContent {
+	/*display: table;*/
+	float:left; 
+	/*display:inline; */
+	/*width: 35%;*/
+	/*height: 20px;*/
+	padding: 6px 6px 6px 8px;
+	margin: 0px 0px 0px 0px;
+}		
+
+#sideContentIN {
+	float:left; 
+	display:inline; 
+	/*width: 35%;*/
+	/*height: 20px;*/
+	padding: 0px 0px 0px 10px;
+	margin: 0px 0px 0px 0px;
+}	
+
+select {
+	height: 3em;
+}
+
+input {
+	height: 3em;
+}
+
+body {
+	padding: 0px 0px 0px 0px;
+	margin: 0px 0px 0px 0px;
+}
+
+.yaxis line {
+	stroke: rgba(220,220,220,0.5);
+}
+
+.yaxis path {
+	stroke: rgba(220,220,220,0.5);
+}

@@ -1,3 +1,5 @@
+var starttime = new Date().getTime()
+
 const puppeteer = require('puppeteer');
 const cheerio = require('cheerio');
 const fs = require('fs');
@@ -7,18 +9,21 @@ const d3 = require('d3');
 var args = process.argv.slice(2);
 
 var data_path = args[0];
-var days_offset = args[1];
-var url_ = 	args[2];
-var localOption = args[3];
+var url_ = 	args[1];
+//optional beyond
+var days_offset = args[2]; 
+// to scrape earlier than today you will have to download the days manually from
+// Barchart website
 
-data_path = data_path === undefined || data_path==='-' ? './' : data_path;
+
+data_path = data_path === undefined || data_path==='-' ? './data.json' : data_path;
+url_ =  url_ === undefined || url_ === '-' ? 'https://www.barchart.com/futures/quotes/ES*0/interactive-chart/fullscreen' : url_;
 days_offset = days_offset === undefined ||  days_offset==='-' ? 0 : days_offset;
-url_ =  url_ ? url_ : 'https://www.barchart.com/futures/quotes/ES*0/interactive-chart/fullscreen';
 
 
 console.log('-------------------')
 
-if (localOption === 'local' || localOption === 'l' || localOption === 'file') {
+if (!url_.includes('http')) {
 	console.log(`reading html from local file... (${url_})`)
 	let html = fs.readFileSync(url_);
 	write_data(scrape_bars(html))
@@ -61,7 +66,7 @@ async function scrape_html(url_) {
 		var dateh = new Date()
 		dateh = dateh.getHours()
 
-		await page.screenshot({path: `${data_path}/screenshot${dateh}.png`});
+		await page.screenshot({path: `./screenshot.png`});
 		await browser.close();
 	} catch(err) {
 			console.log(err)
@@ -75,7 +80,7 @@ function scrape_bars(html) {
 	let fresh_bars = []; 
 
 	$ = cheerio.load(html);
-	fs.writeFileSync(`${data_path}html.html`, html);
+	fs.writeFileSync(`./html.html`, html);
 
 	var p = $('g.highcharts-series-group > > path').slice(0,-2)
 	var r = $('g.highcharts-series-group > > rect')
@@ -106,6 +111,7 @@ function scrape_bars(html) {
 		//'640. Monday, Apr  8, 15:43. category, 1554734580000. y, 2898.25. open, 2898. high, 2898.25. low, 2898. close, 2898.25.'
 			var bar = {}
 			var rawdata = $(this).attr('aria-label')
+
 			if (rawdata) {
 	  		rawdata = rawdata.split(". y, ")
 	  		//remember that BarChart.com will give you time in CT
@@ -119,7 +125,7 @@ function scrape_bars(html) {
 									  						 	 	.split('-')
 
 					bar.t = parseInt(rawdata[0].split(',')[3]);
-					bar.humanT = rawdata[0];
+					bar.th = rawdata[0].split('.')[1].replace(',','');
 					bar.o = parseFloat(rawvalues[1]);
 					bar.h = parseFloat(rawvalues[2]);
 					bar.l = parseFloat(rawvalues[3]);
@@ -149,6 +155,12 @@ function scrape_bars(html) {
 
 function write_data(fresh_bars) {
 	var daydate = new Date()
+
+	if (daydate.getHours() >= 16 && daydate.getHours() <= 24) {
+		console.log('scrape time is overnight, date will be set to tomorrow. (current date + 1 day)')
+		console.log('----------------------------')
+		daydate = new Date(daydate.setHours(daydate.getHours() + 24))
+	}
 	
 	var initial_bar_t
 	var max_bar_t = new Date(daydate.setHours(daydate.getHours() - (24 * days_offset)))
@@ -157,6 +169,8 @@ function write_data(fresh_bars) {
 	max_bar_t = max_bar_t.getTime();
 
 	printDate('scrape time: ', daydate)
+	console.log('you offset the scrape time by -' + days_offset + ' days')
+	console.log('----------------------------')
 
 	daydate.setHours(0,0,0,0); //so that is always the same when we set hours for initial bar
 
@@ -165,30 +179,34 @@ function write_data(fresh_bars) {
 
 	var date_str = daydate.getFullYear() + '-' + (daydate.getMonth() + 1) + '-' + daydate.getDate();
 
-	let ex_rawdata = fs.readFileSync(`${data_path}data1m.json`);
+	let ex_rawdata = fs.readFileSync(`${data_path}`);
 	let data = JSON.parse(ex_rawdata);
 
-	var today = data[date_str]
-	// var today = days_data["4-14"]
+	var todayBars = data[date_str] ? data[date_str].bars : [];
 
-	if (today && today.length > 0) {
-		initial_bar_t = d3.max(today.map( function(d) {return d.t;} ));
+	if (todayBars && todayBars.length > 0) {
+		initial_bar_t = d3.max(todayBars.map( function(d) {return d.t;} ));
+		console.log('----------------------------')
+		console.log('there was already bar/s for ' + date_str)
+		console.log('----------------------------')
 	} else {
 		initial_bar_t = daydate.setHours(daydate.getHours() - 7, //24 - 7 = 17 => 5pm (CT)
 									  daydate.getMinutes(),   //careful daydate is now changed from set
 									  daydate.getSeconds() - 30);
-		today = []
+		console.log('----------------------------')
+		console.log('this is the first time we add bar/s for ' + date_str)
+		console.log('----------------------------')
 	}//note: if is the first recording of the day the initial_bar_t will have 30 seconds otherwise 0
 
 	printDate('initial bar.t: ', new Date(initial_bar_t))
 	printDate('max bar.t: ', new Date(max_bar_t))
 
 	var counter = 0
-	var last_bar_t = undefined
+	var last_bar_t = 0
 	fresh_bars.forEach(function(e) {
 		if (e.t > initial_bar_t && e.t < max_bar_t) {
-			today.push(e)
-			last_bar_t = e.t
+			todayBars.push(e)
+			last_bar_t = e.t > last_bar_t ? e.t : last_bar_t;
 			counter ++
 		}
 	});
@@ -198,16 +216,28 @@ function write_data(fresh_bars) {
 	console.log('bars added: ')
 	console.log(counter)
 	console.log('data location:')
-	console.log(data_path +'data1m.json')
+	console.log(data_path)
 
-	data[date_str] = {'timestamp_start_of_day_server_side': timestamp_daydate, 'bars': today};
+	data[date_str] = {'dayTime0': timestamp_daydate, 'bars': todayBars};
 
 	data = JSON.stringify(data, null, 2);
-	fs.writeFileSync(`${data_path}data1m.json`, data);
+	fs.writeFileSync(`${data_path}`, data);
 	console.log('-------------------')
+
+	var endtime = new Date().getTime()
+	console.log('execution time: ' + ((endtime - starttime)/1000) + 's')
 }
 
+
 function printDate(str, date) {
+	if (date.getFullYear() === 1970 || date === NaN) {
+		console.log('////')
+		console.log(str); 
+		console.log('NONE'); 
+		console.log('NONE'); 
+		console.log('////')
+		return null
+	}
 	let days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 	let dayName = days[date.getDay()];
 	console.log('////')

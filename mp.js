@@ -7,53 +7,52 @@ const letters = ['A','B','C','D','E','F','G','H','I',
 						   '2','3','4','5','6','7','8','9','$'];
 						   // '%','@','£','#','?','>','&','€','/'];
 
-var ticksize
+function getDayProfileData(daybars, sessions_times) {
 
-var dayduration = {'starthour': 17, 'endhour': 15, 'thisdaystart': null}
-dayduration.thisdaystart = dayduration.starthour > dayduration.endhour ? 24 : dayduration.starthour; 
+	if (path_ === 'zn.json') {
+		daybars = completeZNpriceBars(daybars);
+	}
 
-var sessions_times = [{'start': '1700', 'end': '0830', 'name': 'eth'},
-											{'start': '0830', 'end': '1515', 'name': 'rth'}]
-
-var timestamp_0
-
-var lastTimestamp = 0
-
-function getDayProfileData(timestamp_0000, daybars, sessions_times) {
-
-	timestamp_0 = timestamp_0000
-
-	ticksize = 0.25;
 	var dayProfileData = []
 	var sessions = getLabeledSessions(daybars, sessions_times)
 
 	sessions.forEach((session) => {
-		var session_P = {'h': null, 'l': null, 'periods': {}}
 
 		var periods = d3.nest()
 		  .key(function(d) {return d.p;})
-		  .rollup(function(v) { return {
-		    count: v.length,
-		    o: d3.min(v, function(d) { return d.po; }),
-		    h: d3.max(v, function(d) { return d.h; }),
-		    l: d3.min(v, function(d) { return d.l; }),
-		    vol: d3.sum(v, function(d) { return d.v; }),
-		    bars: v
-	  	};
-	  })
+		  .rollup(function(v) { 
+		  	//for each period
+		  	var open_close = d3.extent(v, function(d) { return d.t;})
+		  	var open = v.filter((bar) => {return bar.t === open_close[0]})[0].o
+		  	var close = v.filter((bar) => {return bar.t === open_close[1]})[0].c
+
+		  	return {
+			    count: v.length,
+			    o: open,
+			    c: close,
+			    h: d3.max(v, function(d) { return d.h; }),
+			    l: d3.min(v, function(d) { return d.l; }),
+			    vol: d3.sum(v, function(d) { return d.v; }),
+			    bars: v
+	  		};
+	  	})
 	  .entries(session);
 
+	  var session_P = {'h': null, 'l': null, 'periods': {}}
 	  session_P.h = d3.max(periods.map((d) => {return d.value.h}))
 	  session_P.l = d3.min(periods.map((d) => {return d.value.l}))
 
 		periods.forEach((period) => {
 			let periodVP = vProfilePeriodBars(period.value.bars, period.value.h, period.value.l);
-			session_P.periods[period.key] = {'o': period.value.o,
-																			 'h': period.value.h,
-																			 'l': period.value.l,
-																			 'poc': null,
-																			 'vpoc': null,
-																			 'vp': periodVP}
+			session_P.periods[period.key] = {
+				'c': period.value.c,
+				'o': period.value.o,
+				'h': period.value.h,
+				'l': period.value.l,
+				'v': period.value.vol,
+				'poc': null,
+				'vpoc': null,
+				'vp': periodVP}
 		})
 
 		dayProfileData.push(session_P)
@@ -86,7 +85,6 @@ function profileValues(session_Pdata) {
 				profileTPOval[p] += 1;
 			}
 			profileVOL = mergeObjs(profileVOL, period.vp)
-			console.log(letter)
 			period.poc = calculatePOC(profileTPOval)
 			period.vpoc = calculatePOC(profileVOL)
 		}
@@ -133,7 +131,6 @@ function calculatePOC(profile) {
 	var poc_contendents = currentProfile.filter((arr) => {
 			return arr[1] === maxTPO;
 		})
-	// console.log(poc_contendents)
 
 	if (poc_contendents.length > 1) {
 		
@@ -142,12 +139,9 @@ function calculatePOC(profile) {
 		}))
 		var index4poc
 		poc_contendents.forEach((arr, i) => {
-			// console.log('el ' + i + ': ' + Math.abs(mid - arr[0]))
 			index4poc = Math.abs(mid - arr[0]) === maxMidDist ? i : index4poc;
 		})
-		// console.log(poc_contendents)
-		// console.log(maxMidDist)
-		// console.log(index4poc)
+
 		// still missing in case there is more equidistant from mid point pocs and you have to 
 		// calculate the side with most tpos.
 		return {'price': poc_contendents[index4poc][0], 'tpos/vol': poc_contendents[index4poc][1]}
@@ -187,7 +181,7 @@ function getLabeledSessions(daybars, sessions_times) {
 	var reminder = daybars.slice(0);
 
 	sessions_times.forEach((session_t) => {
-		let hHourslist = getPeriodsTimes(timestamp_0, session_t)
+		let hHourslist = getPeriodsTimes(timestamp_0000, session_t)
 		let splitday = labelBars_session(reminder, hHourslist)
 		day_sessions.push(splitday.labeled)
 		reminder = splitday.reminder
@@ -227,7 +221,6 @@ function getPeriodsTimes(timestamp_0000, session_t) {
 	}
 	halfhours.push({'timestamp': end, 'localTime': writeDate(end)})
 	
-
 	return halfhours
 }
 
@@ -242,12 +235,11 @@ function labelBars_session(daybars, halfhours) {
 			var periodEnd = halfhours[j+1].timestamp
 			var periodStart = halfhours[j].timestamp
 
-			if (bar.t === periodStart) {
-				bar.po = bar.o
-			}
-
 			if (bar.t >= periodStart && bar.t < periodEnd) {
-				bar.t > lastTimestamp ? lastTimestamp = bar.t : null; 
+				if (bar.t > lastTimestamp) {
+					// console.log('oldest bar'); 
+					// console.log(bar); 
+					lastTimestamp = bar.t} 
 				bar.p = letters[j]
 
 				splitday.push(bar)
@@ -279,6 +271,59 @@ function setHours(timestamp, hours, minutes) {
 	timestamp += (minutes * 1000 * 60)
 
 	return timestamp
+}
+
+function completeZNpriceBars(bars) {
+	var barsnew = []
+	bars.forEach((bar) => {
+		barnew = Object.assign({}, bar)
+		barnew.o = completeZNprice(bar.o)
+		barnew.l = completeZNprice(bar.l)
+		barnew.h = completeZNprice(bar.h)
+		barnew.c = completeZNprice(bar.c)
+
+		barsnew.push(barnew)
+	})
+
+	return barsnew
+}
+
+
+function completeZNprice(price) {
+	var lastDigitMap = { 
+			'4':  	0.000025,
+			'9':	0.000025,
+			'6':	0.000075,
+			'8':	0,
+			'3':	0,
+			'0':	0.00005,
+			'1':	0.000075,
+			'5':	0.00005,
+		}
+
+		var priceLastDigit = (price * 10000) % 10
+
+		var toAdd = lastDigitMap[priceLastDigit]
+
+		price += toAdd
+
+		return parseFloat(price.toFixed(6))
+}
+
+function getCTtime(timestamp) {
+	var aestTime = new Date(timestamp).toLocaleString("en-US", {timeZone: "America/Chicago"});
+	aestTime = new Date(aestTime);
+	// var time_str = aestTime.toLocaleString().split(', ')[1].replace(':00','')
+
+	
+	return {
+		'date': aestTime.getFullYear() + '-' +
+						(aestTime.getMonth() + 1) + '-' +
+						aestTime.getDate(),
+		'time': (aestTime.getHours().toString().length > 1 ? aestTime.getHours() : '0' + aestTime.getHours())
+								+ ':' + 
+						(aestTime.getMinutes().toString().length > 1 ? aestTime.getMinutes() : '0' + aestTime.getMinutes())
+	}
 }
 
 

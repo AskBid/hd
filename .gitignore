@@ -13,3 +13,6 @@ img
 mergeobjs.js
 *.txt
 *.ods*
+*.pem
+/font
+checktime.js
