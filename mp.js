@@ -9,14 +9,14 @@ const letters = ['A','B','C','D','E','F','G','H','I',
 
 function getDayProfileData(daybars, sessions_times) {
 
-	if (path_ === 'zn.json') {
+	if ($(location).attr("href").includes('zn')) {
 		daybars = completeZNpriceBars(daybars);
 	}
 
 	var dayProfileData = []
 	var sessions = getLabeledSessions(daybars, sessions_times)
 
-	sessions.forEach((session) => {
+	sessions.forEach((session, i) => {
 
 		var periods = d3.nest()
 		  .key(function(d) {return d.p;})
@@ -38,7 +38,7 @@ function getDayProfileData(daybars, sessions_times) {
 	  	})
 	  .entries(session);
 
-	  var session_P = {'h': null, 'l': null, 'periods': {}}
+	  var session_P = {'tag': sessions_times[i].name,'h': null, 'l': null, 'periods': {}, 'lastTimestamp': lastTimestamp}
 	  session_P.h = d3.max(periods.map((d) => {return d.value.h}))
 	  session_P.l = d3.min(periods.map((d) => {return d.value.l}))
 
@@ -216,10 +216,10 @@ function getPeriodsTimes(timestamp_0000, session_t) {
 	var halfhours = []
 	for (let i = start, j = 0; i < end; i += 1800000, j++) { //1800000 = 30 minuts times 60 seconds times 1000 milliseconds
 
-		var dic = {'period': letters[j], 'timestamp': i, 'localTime': writeDate(i)}
+		var dic = {'period': letters[j], 'timestamp': i, 'humanTime': getCTtime(i).digitime}
 		halfhours.push(dic)
 	}
-	halfhours.push({'timestamp': end, 'localTime': writeDate(end)})
+	halfhours.push({'period': 'end', 'timestamp': end, 'humanTime': getCTtime(end).digitime})
 	
 	return halfhours
 }
@@ -262,6 +262,14 @@ function writeDate(timestamp) {
 						(date.getMonth() + 1) + '-' +
 						 date.getDate()+ ' seconds(' +
 						 date.getSeconds()+ ')')
+
+	return str
+}
+
+function writeTime(timestamp) {
+	date = new Date(timestamp)
+	var str = `${date.getHours() < 10 ? '0' + date.getHours() : date.getHours()}`+
+						`${date.getMinutes() < 10 ? '0' + date.getMinutes() : date.getMinutes()}`
 
 	return str
 }
@@ -322,7 +330,10 @@ function getCTtime(timestamp) {
 						aestTime.getDate(),
 		'time': (aestTime.getHours().toString().length > 1 ? aestTime.getHours() : '0' + aestTime.getHours())
 								+ ':' + 
-						(aestTime.getMinutes().toString().length > 1 ? aestTime.getMinutes() : '0' + aestTime.getMinutes())
+						(aestTime.getMinutes().toString().length > 1 ? aestTime.getMinutes() : '0' + aestTime.getMinutes()),
+		'digitime': `${aestTime.getHours().toString().length > 1 ? aestTime.getHours() : '0' + aestTime.getHours()}`
+								+
+						`${aestTime.getMinutes().toString().length > 1 ? aestTime.getMinutes() : '0' + aestTime.getMinutes()}`
 	}
 }
 

@@ -16,10 +16,13 @@ var days_offset = args[2];
 // Barchart website
 
 
-data_path = data_path === undefined || data_path==='-' ? './data.json' : data_path;
+data_path = data_path === undefined || data_path==='-' ? '/var/www/html/es/' : data_path;
 url_ =  url_ === undefined || url_ === '-' ? 'https://www.barchart.com/futures/quotes/ES*0/interactive-chart/fullscreen' : url_;
 days_offset = days_offset === undefined ||  days_offset==='-' ? 0 : days_offset;
 
+if (data_path[data_path.length - 1] != '/') {
+	data_path = data_path + '/'
+}
 
 console.log('-------------------')
 
@@ -111,6 +114,7 @@ function scrape_bars(html) {
 		//'640. Monday, Apr  8, 15:43. category, 1554734580000. y, 2898.25. open, 2898. high, 2898.25. low, 2898. close, 2898.25.'
 			var bar = {}
 			var rawdata = $(this).attr('aria-label')
+			var rawwwwwdata = rawdata
 
 			if (rawdata) {
 	  		rawdata = rawdata.split(". y, ")
@@ -126,6 +130,7 @@ function scrape_bars(html) {
 
 					bar.t = parseInt(rawdata[0].split(',')[3]);
 					bar.th = rawdata[0].split('.')[1].replace(',','');
+					bar.traw = rawwwwwdata;
 					bar.o = parseFloat(rawvalues[1]);
 					bar.h = parseFloat(rawvalues[2]);
 					bar.l = parseFloat(rawvalues[3]);
@@ -179,10 +184,20 @@ function write_data(fresh_bars) {
 
 	var date_str = daydate.getFullYear() + '-' + (daydate.getMonth() + 1) + '-' + daydate.getDate();
 
-	let ex_rawdata = fs.readFileSync(`${data_path}`);
-	let data = JSON.parse(ex_rawdata);
+	let data
 
-	var todayBars = data[date_str] ? data[date_str].bars : [];
+	try {
+		data = fs.readFileSync(`${data_path}data/${date_str}.json`);
+		data = JSON.parse(data);
+	} catch(err) {
+		console.log(`trying to read the ${data_path}data/${date_str}.json file, this happened:`)
+		console.log(err)
+		console.log('data was:')
+		console.log(data)
+		// return;
+	}
+
+	var todayBars = data ? data.bars : [];
 
 	if (todayBars && todayBars.length > 0) {
 		initial_bar_t = d3.max(todayBars.map( function(d) {return d.t;} ));
@@ -216,12 +231,20 @@ function write_data(fresh_bars) {
 	console.log('bars added: ')
 	console.log(counter)
 	console.log('data location:')
-	console.log(data_path)
+	console.log(`${data_path}data/${date_str}.json`)
 
-	data[date_str] = {'dayTime0': timestamp_daydate, 'bars': todayBars};
+	if (todayBars.length === 0) {return}
+	var data_to_write = {'dayTime0': timestamp_daydate, 'bars': todayBars};
 
-	data = JSON.stringify(data, null, 2);
-	fs.writeFileSync(`${data_path}`, data);
+	data_to_write = JSON.stringify(data_to_write, null, 2);
+	fs.writeFileSync(`${data_path}data/${date_str}.json`, data_to_write);
+	console.log('-------------------')
+	console.log('collecting list of file in data....')
+	var files = fs.readdirSync(`${data_path}data/`);
+	data_to_write = JSON.stringify(files, null, 2);
+	data_to_write = data_to_write.replace('".DS_Store",','')
+	fs.writeFileSync(`${data_path}datadates.json`, data_to_write);
+	console.log(`written list in ${data_path}`)
 	console.log('-------------------')
 
 	var endtime = new Date().getTime()

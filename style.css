@@ -1,10 +1,121 @@
+@font-face {
+    font-family: 'digital-7_monomono';
+    src: url('./font/digital-7.mono-webfont.woff2') format('woff2'),
+         url('./font/digital-7.mono-webfont.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+
+}
 
 @font-face {
-	font-family: 'digital-7regular';
-	src: url('./font/digital-7-webfont.woff2') format('woff2'),
-	     url('./font/digital-7-webfont.woff') format('woff');
-	font-weight: normal;
-	font-style: normal;
+    font-family: 'digital-7_monoitalic';
+    src: url('./font/digital-7.monoitalic-webfont.woff2') format('woff2'),
+         url('./font/digital-7.monoitalic-webfont.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+
+}
+
+html {
+	overflow-y: hidden;
+}
+
+.bigcontainer {
+	display: grid;
+/*	border-style: solid;
+	border-width: 5px;*/
+	grid-template-columns: minmax(50px, 0.06fr) 0.9fr;
+	grid-auto-rows: minmax(0.1fr, 0.4fr) auto;
+}
+
+.container {
+	display: grid;
+/*	border-style: solid;
+	border-width: 5px;*/
+	grid-template-columns: repeat(auto-fit, minmax(100px, 0.2fr));
+	grid-auto-rows: minmax(5vh, auto);;
+}
+
+#contentTop {
+/*	border-style: solid;
+	border-width: 5px;*/
+	background-color: #ccc;
+	text-align: center;
+	padding: 1vh 5px 3px 5px;
+	height: 18px;
+	width: auto;
+	vertical-align: middle;
+	font-family: "sans-serif", "Helvetica";
+	font-size: 14px;
+	margin: 0px 1px 0px 1px;
+	/*margin: 4px;*/
+}	
+
+#contentTop:hover{
+/*	border-style: solid;
+	border-width: 5px;*/
+	background-color: white;
+	text-align: center;
+	padding: 1vh 5px 3px 5px;
+	height: 20px;
+	width: auto;
+	vertical-align: middle;
+	font-family: "sans-serif", "Helvetica";
+	font-size: 14px;
+	/*margin: 4px;*/
+}	
+
+#contentCurrent {
+	background-color: #555;
+	margin: 0px 1px 0px 1px;
+	/*border: solid;*/
+	/*border-width: 0px 1px 1px 1px;*/
+	/*border-color: #555;*/
+	text-align: center;
+	padding: 1vh 5px 3px 5px;
+	height: 18px;
+	width: auto;
+	vertical-align: middle;
+	font-family: "sans-serif", "Helvetica";
+	font-size: 14px;
+	color: white;
+}	
+
+a {
+	text-decoration: none;
+	color: black;
+}
+
+#content {
+/*	border-style: solid;
+	border-width: 5px;*/
+	text-align: center;
+	padding: 8px 5px 5px 5px;
+	height: auto;
+	width: auto;
+	/*margin: 4px;*/
+}	
+
+#datepicker {
+	font-size: 100%;
+}
+
+select {
+	height: 100%;
+	width: 100%;
+	font-size: 100%;
+}
+
+input {
+	box-sizing : border-box;
+	height: 100%;
+	width: 100%;
+
+}
+
+
+.tick > text { 
+	font-size: 2vh; 
 }
 
 text {
@@ -16,7 +127,21 @@ text {
   padding: 0px;
 }
 
-text .logo {
+input[type="text"] {
+	box-sizing : border-box;
+	text-align: center ;
+	vertical-align: middle;
+	padding: 0px;
+	height: 100%;
+	width: 100%;
+	font-size: 100%;
+	background-color: #fff;
+	font-size: 100%;
+	font-family: 'digital-7_monoitalic';
+	text-shadow: 2px 2px 1.6px #ddd;
+}
+
+.logo > text {
   line-height: 0.5;
   color: rgba(255,255,255,0.7);
   font-size: 16px;
@@ -24,14 +149,14 @@ text .logo {
   padding: 0px;
 }
 
-rect {
+.lastprice {
 	fill:none;
-	stroke:pink;
+	stroke:yellow;
 	stroke-width:1;
 	stroke-opacity:0.6;
 }	
 
-rect:hover {
+.lastprice:hover {
 	fill:yellow;
 	stroke:yellow;
 	stroke-width:1.1;
@@ -46,35 +171,8 @@ p {
 	line-height: 1;
 	color: rgba(255,255,255,0.5);
 	font-size: 10px;
-	padding: 0px 0px 0px 0px;
-	margin: 0px 0px 0px 0px;
-}
-
-#sideContent {
-	/*display: table;*/
-	float:left; 
-	/*display:inline; */
-	/*width: 35%;*/
-	/*height: 20px;*/
-	padding: 6px 6px 6px 8px;
-	margin: 0px 0px 0px 0px;
-}		
-
-#sideContentIN {
-	float:left; 
-	display:inline; 
-	/*width: 35%;*/
-	/*height: 20px;*/
-	padding: 0px 0px 0px 10px;
-	margin: 0px 0px 0px 0px;
-}	
-
-select {
-	height: 3em;
-}
-
-input {
-	height: 3em;
+	padding: 6px 0px 0px 0px;
+	margin: 0px;
 }
 
 body {
@@ -88,4 +186,78 @@ body {
 
 .yaxis path {
 	stroke: rgba(220,220,220,0.5);
+}
+
+#priceTag {
+	fill: yellow;
+	font-weight: 600;
+	/*text-decoration: underline;*/
+}
+
+/*244, 155, 66*/
+#settle1 {
+	fill: rgba(188, 177, 52,1);
+	font-style: italic;
+	font-size: 1.8vh;
+}
+#settle2 {
+	fill: rgba(188, 177, 52,0.7);
+	font-style: italic;
+	font-size: 1.8vh;
+}
+#settle3 {
+	fill: rgba(188, 177, 52,0.1);
+	font-style: italic;
+	font-size: 1.8vh;
+}
+
+#poc0 {
+	fill: rgba(20,220,20,0.8);
+	font-weight: 500;
+}
+#poc1 {
+	fill: rgba(20,220,20,0.6);
+	font-style: italic;
+	font-size: 1.8vh;
+}
+#poc2 {
+	fill: rgba(20,220,20,0.3);
+	font-style: italic;
+	font-size: 1.8vh;
+}
+#poc3 {
+	fill: rgba(20,220,20,0.1);
+	font-style: italic;
+	font-size: 1.8vh;
+}
+
+#h0 {
+	fill: rgba(100, 255, 255,0.8);
+	font-weight: 400;
+	font-size: 1.85vh;
+}
+#h1 {
+	fill: rgba(100, 255, 255,0.6);
+	font-weight: 200;
+	font-style: italic;
+	font-size: 1.8vh;
+}
+#h2 {
+	fill: rgba(100, 255, 255,0.3);
+	font-weight: 200;
+	font-style: italic;
+	font-size: 1.8vh;
+}
+#h3 {
+	fill: rgba(100, 255, 255,0.1);
+	font-weight: 200;
+	font-style: italic;
+	font-size: 1.8vh;
+}
+
+#hN {
+	fill: rgba(150, 150, 150,0.9);
+	font-weight: 200;
+	font-style: italic;
+	font-size: 1.8vh;
 }
